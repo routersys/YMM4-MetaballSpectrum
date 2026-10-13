@@ -11,7 +11,7 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
     public const int ValueByteSize = MaxValues * sizeof(float);
     public const int MaxWindow = 1 << 20;
 
-    private enum PropertyIndex
+    internal enum PropertyIndex
     {
         FieldWidth = 0,
         FieldHeight,
