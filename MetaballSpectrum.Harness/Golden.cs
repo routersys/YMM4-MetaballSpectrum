@@ -20,8 +20,7 @@ internal sealed record Golden(string Adapter, string Driver, string Input, strin
         NewLine = "\n",
     };
 
-    public static string PathFor(HarnessImage image)
-        => Path.Combine(ReadDirectory(), image.Key is null ? FileName : $"golden-{image.Key}.json");
+    public static string PathFor() => Path.Combine(ReadDirectory(), FileName);
 
     public static Golden Load(string path)
     {

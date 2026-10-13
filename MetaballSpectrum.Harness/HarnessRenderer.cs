@@ -3,19 +3,18 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Vortice.DCommon;
 using Vortice.Direct2D1;
-using Vortice.Direct2D1.Effects;
 using Vortice.DXGI;
 using Vortice.Mathematics;
 using YukkuriMovieMaker.Commons;
 using YukkuriMovieMaker.Player.Video;
-using YukkuriMovieMaker.Plugin.Effects;
+using YukkuriMovieMaker.Plugin.Shape;
 
 namespace MetaballSpectrum.Harness;
 
 internal sealed class HarnessRenderer : IDisposable
 {
-    const int Fps = 30;
-    const int Length = 300;
+    public const int Fps = 30;
+    public const int Length = 300;
     const int WarmupUpdates = 2000;
     const int UpdateRepeats = 20;
     const float Dpi = 96f;
@@ -24,15 +23,12 @@ internal sealed class HarnessRenderer : IDisposable
 
     readonly GraphicsDevices devices;
     readonly IGraphicsDevicesAndContext context;
-    readonly ID2D1Bitmap1 image;
     readonly ID2D1Bitmap1 target;
     readonly ID2D1Bitmap1 readback;
     readonly ID2D1Bitmap1 sync;
     readonly GpuTimer timer;
-    readonly AffineTransform2D placement;
-    readonly ID2D1Image centered;
 
-    public HarnessRenderer(int canvasWidth, int canvasHeight, HarnessImage source)
+    public HarnessRenderer(int canvasWidth, int canvasHeight)
     {
         CanvasWidth = canvasWidth;
         CanvasHeight = canvasHeight;
@@ -44,19 +40,10 @@ internal sealed class HarnessRenderer : IDisposable
         Adapter = adapter.Description.Description;
         Driver = adapter.CheckInterfaceSupport<IDXGIDevice>(out var version) ? FormatDriverVersion(version) : "不明";
 
-        image = CreateBitmap(deviceContext, source.Width, source.Height, BitmapOptions.None);
-        image.CopyFromMemory(source.Pixels, source.Width * HarnessImage.BytesPerPixel);
         target = CreateBitmap(deviceContext, canvasWidth, canvasHeight, BitmapOptions.Target);
         readback = CreateBitmap(deviceContext, canvasWidth, canvasHeight, BitmapOptions.CpuRead | BitmapOptions.CannotDraw);
         sync = CreateBitmap(deviceContext, 1, 1, BitmapOptions.CpuRead | BitmapOptions.CannotDraw);
         timer = new GpuTimer(devices.D3D.Device, devices.D3D.DeviceContext);
-
-        placement = new AffineTransform2D(deviceContext)
-        {
-            TransformMatrix = Matrix3x2.CreateTranslation(-source.Width * 0.5f, -source.Height * 0.5f),
-        };
-        placement.SetInput(0, image, true);
-        centered = placement.Output;
     }
 
     public int CanvasWidth { get; }
@@ -67,119 +54,99 @@ internal sealed class HarnessRenderer : IDisposable
 
     public string Driver { get; }
 
-    public byte[][] Render(IVideoEffect effect, IReadOnlyList<int> frames)
+    public byte[][] Render(IAudioSpectrumParameter parameter, IReadOnlyList<int> frames)
     {
         if (frames.Count == 0)
             throw new ArgumentException("フレームを 1 つ以上指定してください。", nameof(frames));
 
-        using var processor = effect.CreateVideoEffect(context);
-        processor.SetInput(centered);
-        try
+        using var source = parameter.CreateShapeSource(context);
+        var rendered = new byte[frames.Count][];
+        for (var index = 0; index < frames.Count; index++)
         {
-            var rendered = new byte[frames.Count][];
-            for (var index = 0; index < frames.Count; index++)
-            {
-                processor.Update(Describe(frames[index]));
-                rendered[index] = Capture(processor.Output);
-            }
+            source.Update(Describe(frames[index]), SyntheticSpectrum.For(parameter, frames[index]));
+            rendered[index] = Capture(source.Output);
+        }
 
-            return rendered;
-        }
-        finally
-        {
-            processor.ClearInput();
-        }
+        return rendered;
     }
 
-    public (byte[] Direct, byte[] Transitioned) RenderTransition<TEffect>(Func<TEffect> create, Action<TEffect> change, int frame)
-        where TEffect : IVideoEffect
+    public (byte[] Direct, byte[] Transitioned) RenderTransition<TParameter>(Func<TParameter> create, Action<TParameter> change, int frame)
+        where TParameter : IAudioSpectrumParameter
     {
         var settled = create();
         change(settled);
         var direct = Render(settled, [frame])[0];
 
         var live = create();
-        using var processor = live.CreateVideoEffect(context);
-        processor.SetInput(centered);
-        try
-        {
-            processor.Update(Describe(frame));
-            _ = Capture(processor.Output);
-            change(live);
-            processor.Update(Describe(frame));
-            return (direct, Capture(processor.Output));
-        }
-        finally
-        {
-            processor.ClearInput();
-        }
+        using var source = live.CreateShapeSource(context);
+        source.Update(Describe(frame), SyntheticSpectrum.For(live, frame));
+        _ = Capture(source.Output);
+        change(live);
+        source.Update(Describe(frame), SyntheticSpectrum.For(live, frame));
+        return (direct, Capture(source.Output));
     }
 
-    public Measurement Measure(IVideoEffect effect, int frames, bool moving)
+    public Measurement Measure(IAudioSpectrumParameter parameter, int frames, bool moving)
     {
-        var descriptions = new EffectDescription[frames];
+        var descriptions = new TimelineItemSourceDescription[frames];
+        var spectra = new float[frames][];
         for (var frame = 0; frame < frames; frame++)
+        {
             descriptions[frame] = Describe(moving ? frame : 0);
-
-        using var processor = effect.CreateVideoEffect(context);
-        processor.SetInput(centered);
-        var output = processor.Output;
-        try
-        {
-            for (var index = 0; index < WarmupUpdates; index++)
-                processor.Update(descriptions[index % frames]);
-            for (var frame = 0; frame < frames; frame++)
-            {
-                processor.Update(descriptions[frame]);
-                Submit(output);
-            }
-            Synchronize();
-
-            var cpu = TimeSpan.MaxValue;
-            for (var frame = 0; frame < frames; frame++)
-            {
-                var elapsed = Stopwatch.StartNew();
-                processor.Update(descriptions[frame]);
-                Submit(output);
-                elapsed.Stop();
-                cpu = elapsed.Elapsed < cpu ? elapsed.Elapsed : cpu;
-            }
-            Synchronize();
-
-            TimeSpan? gpu = null;
-            for (var frame = 0; frame < frames; frame++)
-            {
-                processor.Update(descriptions[frame]);
-                timer.Begin();
-                Submit(output);
-                timer.End();
-                if (timer.Resolve() is { } resolved && (gpu is null || resolved < gpu))
-                    gpu = resolved;
-            }
-            Synchronize();
-
-            var repeats = frames * UpdateRepeats;
-            var updates = Stopwatch.StartNew();
-            for (var index = 0; index < repeats; index++)
-                processor.Update(descriptions[index % frames]);
-            updates.Stop();
-
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-            var before = GC.GetAllocatedBytesForCurrentThread();
-            var collections = GC.CollectionCount(0);
-            for (var frame = 0; frame < frames; frame++)
-                processor.Update(descriptions[frame]);
-            var allocated = (GC.GetAllocatedBytesForCurrentThread() - before) / frames;
-            var gen0 = GC.CollectionCount(0) - collections;
-
-            return new Measurement(gpu, cpu, updates.Elapsed / repeats, allocated, gen0);
+            spectra[frame] = SyntheticSpectrum.For(parameter, moving ? frame : 0);
         }
-        finally
+
+        using var source = parameter.CreateShapeSource(context);
+        var output = source.Output;
+        for (var index = 0; index < WarmupUpdates; index++)
+            source.Update(descriptions[index % frames], spectra[index % frames]);
+        for (var frame = 0; frame < frames; frame++)
         {
-            processor.ClearInput();
+            source.Update(descriptions[frame], spectra[frame]);
+            Submit(output);
         }
+        Synchronize();
+
+        var cpu = TimeSpan.MaxValue;
+        for (var frame = 0; frame < frames; frame++)
+        {
+            var elapsed = Stopwatch.StartNew();
+            source.Update(descriptions[frame], spectra[frame]);
+            Submit(output);
+            elapsed.Stop();
+            cpu = elapsed.Elapsed < cpu ? elapsed.Elapsed : cpu;
+        }
+        Synchronize();
+
+        TimeSpan? gpu = null;
+        for (var frame = 0; frame < frames; frame++)
+        {
+            source.Update(descriptions[frame], spectra[frame]);
+            timer.Begin();
+            Submit(output);
+            timer.End();
+            if (timer.Resolve() is { } resolved && (gpu is null || resolved < gpu))
+                gpu = resolved;
+        }
+        Synchronize();
+
+        var repeats = frames * UpdateRepeats;
+        var updates = Stopwatch.StartNew();
+        for (var index = 0; index < repeats; index++)
+            source.Update(descriptions[index % frames], spectra[index % frames]);
+        updates.Stop();
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var collections = GC.CollectionCount(0);
+        for (var frame = 0; frame < frames; frame++)
+            source.Update(descriptions[frame], spectra[frame]);
+        var allocated = (GC.GetAllocatedBytesForCurrentThread() - before) / frames;
+        var gen0 = GC.CollectionCount(0) - collections;
+
+        return new Measurement(gpu, cpu, updates.Elapsed / repeats, allocated, gen0);
     }
 
     byte[] Capture(ID2D1Image output)
@@ -221,7 +188,7 @@ internal sealed class HarnessRenderer : IDisposable
         sync.Unmap();
     }
 
-    EffectDescription Describe(int frame)
+    TimelineItemSourceDescription Describe(int frame)
     {
         var timeline = new TimelineSourceDescription(
             new System.Drawing.Size(CanvasWidth, CanvasHeight),
@@ -231,9 +198,7 @@ internal sealed class HarnessRenderer : IDisposable
             TimelineSourceUsage.Playing,
             Guid.Empty,
             []);
-        var item = new TimelineItemSourceDescription(timeline, frame, Length, 0);
-        var draw = new DrawDescription(Vector3.Zero, Vector2.Zero, Vector2.One, Vector3.Zero, Matrix4x4.Identity, InterpolationMode.Linear, 1d, false, []);
-        return new EffectDescription(item, draw, 0, 1, 0, 1);
+        return new TimelineItemSourceDescription(timeline, frame, Length, 0);
     }
 
     static ID2D1Bitmap1 CreateBitmap(ID2D1DeviceContext6 deviceContext, int width, int height, BitmapOptions options)
@@ -246,14 +211,10 @@ internal sealed class HarnessRenderer : IDisposable
 
     public void Dispose()
     {
-        placement.SetInput(0, null, true);
-        centered.Dispose();
-        placement.Dispose();
         timer.Dispose();
         sync.Dispose();
         readback.Dispose();
         target.Dispose();
-        image.Dispose();
         context.Dispose();
         devices.Dispose();
     }

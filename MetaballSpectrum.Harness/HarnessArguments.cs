@@ -12,26 +12,24 @@ internal enum HarnessMode
     Benchmark,
 }
 
-internal sealed record HarnessArguments(HarnessMode Mode, string? Input, string? OutputDirectory, string? Before, string? After)
+internal sealed record HarnessArguments(HarnessMode Mode, string? OutputDirectory, string? Before, string? After)
 {
     public const string Usage = """
         使い方:
-          [<出力先>] [--input <画像>]                ケースを描き、PNG とハッシュを出します
-          --golden [--input <画像>]                  基準値を golden.json に書きます
-          --verify [--input <画像>]                  基準値と照合します
-          --transition [<出力先>] [--input <画像>]   設定を変えた後とフレームを進めた後の描画を、作り直した描画と照合します
-          --compare <前> <後>                        2 つの出力先の PNG を画素ごとに比べます
-          --benchmark [--input <画像>]               描画を計測します
+          [<出力先>]                ケースを描き、PNG とハッシュを出します
+          --golden                  基準値を golden.json に書きます
+          --verify                  基準値と照合します
+          --transition [<出力先>]   設定を変えた後とフレームを進めた後の描画を、作り直した描画と照合します
+          --compare <前> <後>       2 つの出力先の PNG を画素ごとに比べます
+          --benchmark               描画を計測します
         """;
 
     public static HarnessArguments Parse(string[] arguments)
     {
         HarnessMode? mode = null;
-        string? input = null;
         var positionals = new List<string>();
-        for (var index = 0; index < arguments.Length; index++)
+        foreach (var argument in arguments)
         {
-            var argument = arguments[index];
             switch (argument)
             {
                 case "--golden":
@@ -49,11 +47,6 @@ internal sealed record HarnessArguments(HarnessMode Mode, string? Input, string?
                 case "--benchmark":
                     mode = Select(mode, HarnessMode.Benchmark);
                     break;
-                case "--input":
-                    if (index + 1 >= arguments.Length)
-                        throw new HarnessException("--input には画像のパスを続けてください。");
-                    input = arguments[++index];
-                    break;
                 default:
                     if (argument.StartsWith('-'))
                         throw new HarnessException($"不明なオプションです。{argument}");
@@ -68,18 +61,16 @@ internal sealed record HarnessArguments(HarnessMode Mode, string? Input, string?
             case HarnessMode.Compare:
                 if (positionals.Count != 2)
                     throw new HarnessException("--compare には前と後の出力先を続けてください。");
-                if (input is not null)
-                    throw new HarnessException("--compare に --input は使えません。");
-                return new HarnessArguments(HarnessMode.Compare, null, null, positionals[0], positionals[1]);
+                return new HarnessArguments(HarnessMode.Compare, null, positionals[0], positionals[1]);
             case HarnessMode.Render:
             case HarnessMode.Transition:
                 if (positionals.Count > 1)
                     throw new HarnessException($"余分な引数です。{positionals[1]}");
-                return new HarnessArguments(selected, input, positionals.FirstOrDefault(), null, null);
+                return new HarnessArguments(selected, positionals.FirstOrDefault(), null, null);
             default:
                 if (positionals.Count > 0)
                     throw new HarnessException($"余分な引数です。{positionals[0]}");
-                return new HarnessArguments(selected, input, null, null, null);
+                return new HarnessArguments(selected, null, null, null);
         }
     }
 

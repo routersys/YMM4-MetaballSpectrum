@@ -6,8 +6,6 @@ using SharpGen.Runtime;
 
 const int CanvasWidth = 1280;
 const int CanvasHeight = 720;
-const int ImageWidth = 640;
-const int ImageHeight = 480;
 const int FullHdWidth = 1920;
 const int FullHdHeight = 1080;
 
@@ -33,25 +31,16 @@ try
     var outputDirectory = arguments.OutputDirectory ?? Path.Combine(AppContext.BaseDirectory, "harness-output");
     if (arguments.Mode == HarnessMode.Benchmark)
     {
-        if (arguments.Input is { } benchmarkInput)
-        {
-            Benchmark(HarnessImage.Load(benchmarkInput));
-        }
-        else
-        {
-            Benchmark(HarnessImage.Synthetic(CanvasWidth, CanvasHeight));
-            Benchmark(HarnessImage.Synthetic(FullHdWidth, FullHdHeight));
-        }
-
+        Benchmark(CanvasWidth, CanvasHeight);
+        Benchmark(FullHdWidth, FullHdHeight);
         return 0;
     }
 
-    var image = arguments.Input is { } input ? HarnessImage.Load(input) : HarnessImage.Synthetic(ImageWidth, ImageHeight);
-    using var renderer = new HarnessRenderer(CanvasWidth, CanvasHeight, image);
+    using var renderer = new HarnessRenderer(CanvasWidth, CanvasHeight);
     return arguments.Mode switch
     {
-        HarnessMode.Golden => WriteGolden(renderer, image),
-        HarnessMode.Verify => Verify(renderer, image),
+        HarnessMode.Golden => WriteGolden(renderer),
+        HarnessMode.Verify => Verify(renderer),
         HarnessMode.Transition => Transition(renderer, outputDirectory),
         _ => Render(renderer, outputDirectory),
     };
@@ -85,7 +74,7 @@ static int Render(HarnessRenderer renderer, string outputDirectory)
     return failures + CountDuplicates(cases) == 0 ? 0 : 1;
 }
 
-static int WriteGolden(HarnessRenderer renderer, HarnessImage image)
+static int WriteGolden(HarnessRenderer renderer)
 {
     var cases = Evaluate(renderer, null);
     if (CountDuplicates(cases) != 0)
@@ -93,8 +82,8 @@ static int WriteGolden(HarnessRenderer renderer, HarnessImage image)
     if (cases.Count == 0)
         Console.Error.WriteLine("ケースがありません。HarnessCases に書き足してください。");
 
-    var golden = new Golden(renderer.Adapter, renderer.Driver, image.Identity, $"{renderer.CanvasWidth}x{renderer.CanvasHeight}", cases);
-    var path = Golden.PathFor(image);
+    var golden = new Golden(renderer.Adapter, renderer.Driver, SyntheticSpectrum.Identity(HarnessRenderer.Length), $"{renderer.CanvasWidth}x{renderer.CanvasHeight}", cases);
+    var path = Golden.PathFor();
     golden.Save(path);
     Console.WriteLine($"adapter: {golden.Adapter} (driver {golden.Driver})");
     Console.WriteLine($"input: {golden.Input}");
@@ -104,13 +93,14 @@ static int WriteGolden(HarnessRenderer renderer, HarnessImage image)
     return 0;
 }
 
-static int Verify(HarnessRenderer renderer, HarnessImage image)
+static int Verify(HarnessRenderer renderer)
 {
-    var golden = Golden.Load(Golden.PathFor(image));
+    var golden = Golden.Load(Golden.PathFor());
+    var input = SyntheticSpectrum.Identity(HarnessRenderer.Length);
     var canvas = $"{renderer.CanvasWidth}x{renderer.CanvasHeight}";
-    if (golden.Input != image.Identity || golden.Canvas != canvas)
+    if (golden.Input != input || golden.Canvas != canvas)
     {
-        Console.Error.WriteLine($"基準値は入力 {golden.Input} とキャンバス {golden.Canvas} で書かれています。今回は入力 {image.Identity} とキャンバス {canvas} です。");
+        Console.Error.WriteLine($"基準値は入力 {golden.Input} とキャンバス {golden.Canvas} で書かれています。今回は入力 {input} とキャンバス {canvas} です。");
         return 1;
     }
 
@@ -176,15 +166,15 @@ static int Transition(HarnessRenderer renderer, string outputDirectory)
     if (!HarnessCases.Transitions().Any() && !HarnessCases.All().Any(item => item.Frames.Count > 1))
         Console.Error.WriteLine("ケースがありません。HarnessCases に書き足してください。");
 
-    foreach (var (name, effect, frames) in HarnessCases.All())
+    foreach (var (name, parameter, frames) in HarnessCases.All())
     {
         if (frames.Count < 2)
             continue;
 
-        var sequential = renderer.Render(effect, frames);
+        var sequential = renderer.Render(parameter, frames);
         for (var index = 0; index < frames.Count; index++)
         {
-            var fresh = renderer.Render(effect, [frames[index]])[0];
+            var fresh = renderer.Render(parameter, [frames[index]])[0];
             var difference = ImageComparison.Of(fresh, sequential[index], renderer.CanvasWidth, renderer.CanvasHeight);
             var label = $"{name}-f{frames[index]:D3}";
             if (difference.IsEmpty)
@@ -248,22 +238,22 @@ static int Compare(string beforeDirectory, string afterDirectory)
     return failures == 0 ? 0 : 1;
 }
 
-static void Benchmark(HarnessImage image)
+static void Benchmark(int canvasWidth, int canvasHeight)
 {
     const int Frames = 60;
 
-    using var renderer = new HarnessRenderer(image.Width, image.Height, image);
+    using var renderer = new HarnessRenderer(canvasWidth, canvasHeight);
     Console.WriteLine($"adapter: {renderer.Adapter} (driver {renderer.Driver})");
-    foreach (var (name, effect) in HarnessCases.Benchmarks())
+    foreach (var (name, parameter) in HarnessCases.Benchmarks())
     {
-        Report(image, name, "still", renderer.Measure(effect, Frames, moving: false));
-        Report(image, name, "moving", renderer.Measure(effect, Frames, moving: true));
+        Report(renderer, name, "still", renderer.Measure(parameter, Frames, moving: false));
+        Report(renderer, name, "moving", renderer.Measure(parameter, Frames, moving: true));
     }
 }
 
-static void Report(HarnessImage image, string name, string motion, HarnessRenderer.Measurement measurement)
+static void Report(HarnessRenderer renderer, string name, string motion, HarnessRenderer.Measurement measurement)
     => Console.WriteLine(
-        $"{image.Width}x{image.Height} {name,-15} {motion,-6} " +
+        $"{renderer.CanvasWidth}x{renderer.CanvasHeight} {name,-15} {motion,-6} " +
         $"gpu={(measurement.Gpu is { } gpu ? gpu.TotalMilliseconds.ToString("F3") : "n/a"),7} " +
         $"cpu={measurement.Cpu.TotalMilliseconds,7:F3} " +
         $"update={measurement.Update.TotalMilliseconds,6:F3} " +
@@ -273,12 +263,12 @@ static List<GoldenCase> Evaluate(HarnessRenderer renderer, Action<GoldenCase, st
 {
     var cases = new List<GoldenCase>();
     var names = new HashSet<string>(StringComparer.Ordinal);
-    foreach (var (name, effect, frames) in HarnessCases.All())
+    foreach (var (name, parameter, frames) in HarnessCases.All())
     {
         if (!names.Add(name))
             throw new HarnessException($"ケース名が重複しています。{name}");
 
-        var rendered = renderer.Render(effect, frames);
+        var rendered = renderer.Render(parameter, frames);
         var files = new string[frames.Count];
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         for (var index = 0; index < frames.Count; index++)
