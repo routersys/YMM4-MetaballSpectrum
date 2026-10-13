@@ -16,7 +16,7 @@ internal sealed class MetaballSpectrumSource : IAudioSpectrumSource
 
     private readonly D2DEffects.Flood _flood;
     private readonly D2DEffects.Crop _crop;
-    private MetaballSpectrumCustomEffect? _effect;
+    private readonly MetaballSpectrumCustomEffect? _effect;
 
     private bool _isFirst = true;
     private Vector4 _cropRect;
