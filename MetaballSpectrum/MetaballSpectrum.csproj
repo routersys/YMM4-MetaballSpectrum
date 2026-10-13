@@ -61,6 +61,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Resource Include="$(ShaderDirPath)MetaballSpectrum.cso" Link="Resources\Shader\MetaballSpectrum.cso" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Compile Include="..\YMM4-GitHubUpdateNotifier\GitHubUpdateNotifier\*.cs" LinkBase="GitHubUpdateNotifier" />
 	</ItemGroup>
 
