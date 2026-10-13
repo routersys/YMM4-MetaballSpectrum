@@ -14,6 +14,7 @@ public class MetaballSpectrumParameter : AudioSpectrumParameterBase
     public MetaballSpectrumParameter(SharedDataStore? sharedData = null) : base(sharedData)
     {
         MetaballSpectrumTelemetry.EnsureStartedOnce();
+        MetaballSpectrumUpdateNotifier.EnsureCheckedOnce();
     }
 
     [Display(Name = nameof(Texts.FieldWidth), Description = nameof(Texts.FieldWidthDescription), Order = 10, ResourceType = typeof(Texts))]
