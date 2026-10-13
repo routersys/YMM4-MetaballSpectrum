@@ -17,6 +17,10 @@ public class MetaballSpectrumParameter : AudioSpectrumParameterBase
         MetaballSpectrumUpdateNotifier.EnsureCheckedOnce();
     }
 
+    public MetaballSpectrumParameter() : this(null)
+    {
+    }
+
     [Display(Name = nameof(Texts.FieldWidth), Description = nameof(Texts.FieldWidthDescription), Order = 10, ResourceType = typeof(Texts))]
     [AnimationSlider("F1", "px", 0, 1920)]
     public Animation FieldWidth { get; } = new Animation(600, 0.01, YMM4Constants.VeryLargeValue);
