@@ -82,24 +82,13 @@ internal sealed class MetaballSpectrumSource : IAudioSpectrumSource
 
         var count = SpectrumResampler.Resample(spectrum, MemoryMarshal.Cast<byte, float>(_valueBytes.AsSpan()));
 
-        var fieldWidth = _parameter.FieldWidth.GetValue(frame, length, fps);
-        var radius = _parameter.BlobRadius.GetValue(frame, length, fps);
-
-        var window = 0;
-        if (count > 0)
-        {
-            var columnWidth = fieldWidth / count;
-            window = (int)Math.Clamp(Math.Ceiling(radius / columnWidth) + 1, 1, MetaballSpectrumCustomEffect.MaxWindow);
-        }
-
         var parameters = new Parameters(
-            (float)fieldWidth,
+            (float)_parameter.FieldWidth.GetValue(frame, length, fps),
             (float)_parameter.FieldHeight.GetValue(frame, length, fps),
-            (float)radius,
+            (float)_parameter.BlobRadius.GetValue(frame, length, fps),
             (float)(_parameter.Threshold.GetValue(frame, length, fps) / 100.0),
             (float)_parameter.RimThickness.GetValue(frame, length, fps),
             (float)(_parameter.RimBrightness.GetValue(frame, length, fps) / 100.0),
-            window,
             _parameter.IsBipolar ? 1f : 0f,
             color.R / 255f,
             color.G / 255f,
@@ -118,8 +107,6 @@ internal sealed class MetaballSpectrumSource : IAudioSpectrumSource
             _effect.RimThickness = parameters.RimThickness;
         if (_isFirst || _parameters.RimBrightness != parameters.RimBrightness)
             _effect.RimBrightness = parameters.RimBrightness;
-        if (_isFirst || _parameters.Window != parameters.Window)
-            _effect.Window = parameters.Window;
         if (_isFirst || _parameters.Bipolar != parameters.Bipolar)
             _effect.Bipolar = parameters.Bipolar;
         if (_isFirst || _parameters.ColorR != parameters.ColorR)
@@ -175,7 +162,6 @@ internal sealed class MetaballSpectrumSource : IAudioSpectrumSource
         float Threshold,
         float RimThickness,
         float RimBrightness,
-        float Window,
         float Bipolar,
         float ColorR,
         float ColorG,

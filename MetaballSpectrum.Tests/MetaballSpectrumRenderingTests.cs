@@ -24,7 +24,7 @@ public sealed class MetaballSpectrumRenderingTests
         return MemoryMarshal.AsBytes(block.AsSpan()).ToArray();
     }
 
-    static void Configure(MetaballSpectrumCustomEffect effect, MetaballReference spec, int window, int? count = null)
+    static void Configure(MetaballSpectrumCustomEffect effect, MetaballReference spec, int? count = null)
     {
         effect.FieldWidth = (float)spec.Width;
         effect.FieldHeight = (float)spec.Height;
@@ -33,7 +33,6 @@ public sealed class MetaballSpectrumRenderingTests
         effect.Threshold = (float)spec.Threshold;
         effect.RimThickness = (float)spec.RimThickness;
         effect.RimBrightness = (float)spec.RimBrightness;
-        effect.Window = window;
         effect.Bipolar = spec.Bipolar ? 1f : 0f;
         effect.ColorR = (float)spec.Tint.R;
         effect.ColorG = (float)spec.Tint.G;
@@ -42,7 +41,7 @@ public sealed class MetaballSpectrumRenderingTests
         effect.Values = Packed(spec.Values);
     }
 
-    static Rendering Render(IGraphicsDevicesAndContext devices, MetaballReference spec, int window = 3, int? count = null)
+    static Rendering Render(IGraphicsDevicesAndContext devices, MetaballReference spec, int? count = null)
     {
         var context = devices.DeviceContext;
         var halfWidth = (float)(spec.Width * 0.5 + spec.Radius + Margin);
@@ -52,7 +51,7 @@ public sealed class MetaballSpectrumRenderingTests
         using var clip = new Crop(context) { Rectangle = new Vector4(-halfWidth, -halfHeight, halfWidth, halfHeight) };
         using var floodOutput = flood.Output;
         effect.SetInput(0, floodOutput, true);
-        Configure(effect, spec, window, count);
+        Configure(effect, spec, count);
         using var effectOutput = effect.Output;
         clip.SetInput(0, effectOutput, true);
         using var output = clip.Output;
@@ -82,7 +81,6 @@ public sealed class MetaballSpectrumRenderingTests
         effect => effect.Threshold = 0.8f,
         effect => effect.RimThickness = 12f,
         effect => effect.RimBrightness = 0f,
-        effect => effect.Window = 0f,
         effect => effect.Bipolar = 1f,
         effect => effect.ColorR = 0.8f,
         effect => effect.ColorG = 0.9f,
@@ -99,7 +97,6 @@ public sealed class MetaballSpectrumRenderingTests
         "Threshold",
         "RimThickness",
         "RimBrightness",
-        "Window",
         "Bipolar",
         "ColorR",
         "ColorG",
@@ -123,11 +120,11 @@ public sealed class MetaballSpectrumRenderingTests
         using var live = new MetaballSpectrumCustomEffect(context);
         using var liveClip = new Crop(context.DeviceContext) { Rectangle = new Vector4(-120f, -80f, 120f, 80f) };
         live.SetInput(0, floodOutput, true);
-        Configure(live, Base, 3);
+        Configure(live, Base);
         using var fresh = new MetaballSpectrumCustomEffect(context);
         using var freshClip = new Crop(context.DeviceContext) { Rectangle = new Vector4(-120f, -80f, 120f, 80f) };
         fresh.SetInput(0, floodOutput, true);
-        Configure(fresh, Base, 3);
+        Configure(fresh, Base);
         change(fresh);
 
         var before = Capture(context, live, liveClip);
@@ -203,7 +200,7 @@ public sealed class MetaballSpectrumRenderingTests
         using var context = devices.CreateContext();
         var spec = new MetaballReference(400d, 200d, 30d, 0.45, 4d, 0.6, false, Ramp(24), Blue);
 
-        var rendering = Render(context, spec, window: 4);
+        var rendering = Render(context, spec);
 
         Assert.Equal(0, spec.Mismatches(rendering, Tolerance));
     }
@@ -215,7 +212,7 @@ public sealed class MetaballSpectrumRenderingTests
         using var context = devices.CreateContext();
         var spec = new MetaballReference(400d, 200d, 30d, 0.45, 4d, 0.6, true, Wave(24), Blue);
 
-        var rendering = Render(context, spec, window: 4);
+        var rendering = Render(context, spec);
 
         Assert.Equal(0, spec.Mismatches(rendering, Tolerance));
     }
@@ -230,7 +227,7 @@ public sealed class MetaballSpectrumRenderingTests
         using var context = devices.CreateContext();
         var spec = new MetaballReference(400d, 200d, 30d, threshold, rim, brightness, false, Ramp(16), Blue);
 
-        var rendering = Render(context, spec, window: 4);
+        var rendering = Render(context, spec);
 
         Assert.Equal(0, spec.Mismatches(rendering, Tolerance));
     }
@@ -255,7 +252,7 @@ public sealed class MetaballSpectrumRenderingTests
         using var context = devices.CreateContext();
         var spec = new MetaballReference(400d, 200d, 30d, 0.45, 0d, 1d, false, Ramp(16), Blue);
 
-        var rendering = Render(context, spec, window: 4);
+        var rendering = Render(context, spec);
 
         Assert.All(rendering.Coordinates().Where(point => rendering[point.X, point.Y].Alpha == byte.MaxValue), point => Assert.Equal(Bgra.Opaque(255, 102, 32), rendering[point.X, point.Y]));
     }
@@ -265,8 +262,8 @@ public sealed class MetaballSpectrumRenderingTests
     {
         using var devices = new GraphicsDevices();
         using var context = devices.CreateContext();
-        var plain = Render(context, new MetaballReference(400d, 200d, 30d, 0.45, 6d, 0d, false, Ramp(16), Blue), window: 4);
-        var bright = Render(context, new MetaballReference(400d, 200d, 30d, 0.45, 6d, 1d, false, Ramp(16), Blue), window: 4);
+        var plain = Render(context, new MetaballReference(400d, 200d, 30d, 0.45, 6d, 0d, false, Ramp(16), Blue));
+        var bright = Render(context, new MetaballReference(400d, 200d, 30d, 0.45, 6d, 1d, false, Ramp(16), Blue));
 
         var whitened = bright.Coordinates().Count(point => bright[point.X, point.Y].Red > plain[point.X, point.Y].Red + 40);
 
@@ -280,11 +277,11 @@ public sealed class MetaballSpectrumRenderingTests
         using var devices = new GraphicsDevices();
         using var context = devices.CreateContext();
         var spec = new MetaballReference(200d, 100d, 60d, 0.45, 4d, 0.6, false, Ramp(64), Blue);
-        var needed = (int)Math.Ceiling(spec.Radius / (spec.Width / 64)) + 1;
+        var reachedColumns = (int)Math.Ceiling(spec.Radius / (spec.Width / 64));
 
-        var rendering = Render(context, spec, window: needed);
+        var rendering = Render(context, spec);
 
-        Assert.True(needed > 8);
+        Assert.True(reachedColumns > 8);
         Assert.Equal(0, spec.Mismatches(rendering, Tolerance));
     }
 
@@ -295,8 +292,8 @@ public sealed class MetaballSpectrumRenderingTests
         using var context = devices.CreateContext();
         var spec = new MetaballReference(400d, 200d, 30d, 0.45, 4d, 0.6, true, Wave(24), Blue);
 
-        var first = Render(context, spec, window: 4);
-        var second = Render(context, spec, window: 4);
+        var first = Render(context, spec);
+        var second = Render(context, spec);
 
         Assert.True(first.SamePixelsAs(second));
     }

@@ -171,27 +171,6 @@ public sealed class MetaballSpectrumCustomEffectTests
     }
 
     [Theory]
-    [InlineData(-3f, 0f)]
-    [InlineData(0f, 0f)]
-    [InlineData(1f, 1f)]
-    [InlineData(8f, 8f)]
-    [InlineData(9f, 9f)]
-    [InlineData(1000f, 1000f)]
-    [InlineData((float)MaxWindow, (float)MaxWindow)]
-    [InlineData(MaxWindow + 1024f, (float)MaxWindow)]
-    [InlineData(float.MaxValue, (float)MaxWindow)]
-    public void TheWindowIsNotCutOffBeforeTheShaderCapacity(float value, float expected)
-    {
-        using var devices = new GraphicsDevices();
-        using var context = devices.CreateContext();
-        using var effect = new MetaballSpectrumCustomEffect(context);
-
-        effect.Window = value;
-
-        Assert.Equal(expected, Read(effect, PropertyIndex.Window));
-    }
-
-    [Theory]
     [InlineData(-1f, 0f)]
     [InlineData(0.5f, 0.5f)]
     [InlineData(2f, 1f)]

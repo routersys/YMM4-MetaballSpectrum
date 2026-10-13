@@ -20,11 +20,7 @@ public sealed partial class ShaderContractTests
         "Threshold",
         "RimThickness",
         "RimBrightness",
-        "Window",
         "Bipolar",
-        "Pad0",
-        "Pad1",
-        "Pad2",
         "ColorR",
         "ColorG",
         "ColorB",
@@ -35,7 +31,6 @@ public sealed partial class ShaderContractTests
     {
         ["field"] = "FieldWidth",
         ["style"] = "Threshold",
-        ["options"] = "Bipolar",
         ["tint"] = "ColorR",
     };
 
@@ -75,7 +70,7 @@ public sealed partial class ShaderContractTests
     {
         var declared = Declared();
 
-        Assert.Equal(4 * RegisterByteSize, Marshal.SizeOf(ConstantBuffer));
+        Assert.Equal(3 * RegisterByteSize, Marshal.SizeOf(ConstantBuffer));
         Assert.Equal(Marshal.SizeOf(ConstantBuffer), declared["values"].Offset);
     }
 

@@ -4,9 +4,8 @@ cbuffer Constants : register(b0)
 {
     float4 field : packoffset(c0);
     float4 style : packoffset(c1);
-    float4 options : packoffset(c2);
-    float4 tint : packoffset(c3);
-    float4 values[64] : packoffset(c4);
+    float4 tint : packoffset(c2);
+    float4 values[64] : packoffset(c3);
 };
 
 float4 main(
@@ -25,8 +24,7 @@ float4 main(
     float threshold = style.x;
     float rimThickness = style.y;
     float rimBrightness = style.z;
-    int window = (int)style.w;
-    float bipolar = options.x;
+    float bipolar = style.w;
 
     float halfWidth = width * 0.5;
     float halfHeight = height * 0.5;
@@ -37,12 +35,13 @@ float4 main(
     float2 local = scenePosition.xy;
     float antialias = max(max(fwidth(local.x), fwidth(local.y)), 0.5);
 
-    int nearest = (int)floor((local.x + halfWidth) / columnWidth);
     float density = 0.0;
     float2 gradient = float2(0.0, 0.0);
 
-    int first = max(nearest - window, 0);
-    int last = min(nearest + window, count - 1);
+    float firstReached = (local.x - radius + halfWidth) / columnWidth - 0.5;
+    float lastReached = (local.x + radius + halfWidth) / columnWidth - 0.5;
+    int first = (int)clamp(ceil(firstReached), 0.0, count - 1.0);
+    int last = (int)clamp(floor(lastReached), -1.0, count - 1.0);
 
     [loop]
     for (int index = first; index <= last; index++)

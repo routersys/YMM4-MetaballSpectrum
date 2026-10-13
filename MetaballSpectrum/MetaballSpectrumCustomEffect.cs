@@ -9,7 +9,6 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
 {
     public const int MaxValues = 256;
     public const int ValueByteSize = MaxValues * sizeof(float);
-    public const int MaxWindow = 1 << 20;
 
     internal enum PropertyIndex
     {
@@ -20,7 +19,6 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
         Threshold,
         RimThickness,
         RimBrightness,
-        Window,
         Bipolar,
         ColorR,
         ColorG,
@@ -36,7 +34,6 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
     public float Threshold { set => SetValue((int)PropertyIndex.Threshold, value); }
     public float RimThickness { set => SetValue((int)PropertyIndex.RimThickness, value); }
     public float RimBrightness { set => SetValue((int)PropertyIndex.RimBrightness, value); }
-    public float Window { set => SetValue((int)PropertyIndex.Window, value); }
     public float Bipolar { set => SetValue((int)PropertyIndex.Bipolar, value); }
     public float ColorR { set => SetValue((int)PropertyIndex.ColorR, value); }
     public float ColorG { set => SetValue((int)PropertyIndex.ColorG, value); }
@@ -47,7 +44,7 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
     [CustomEffect(1)]
     private sealed class EffectImpl : D2D1CustomShaderEffectImplBase<EffectImpl>
     {
-        private const int HeaderByteSize = 64;
+        private const int HeaderByteSize = 48;
         private const int ConstantBufferByteSize = HeaderByteSize + ValueByteSize;
 
         private ConstantBuffer _cb;
@@ -73,9 +70,6 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
 
         [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.RimBrightness)]
         public float RimBrightness { get => _cb.RimBrightness; set { _cb.RimBrightness = Math.Clamp(value, 0f, 1f); UpdateConstants(); } }
-
-        [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.Window)]
-        public float Window { get => _cb.Window; set { _cb.Window = Math.Clamp(value, 0f, MaxWindow); UpdateConstants(); } }
 
         [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.Bipolar)]
         public float Bipolar { get => _cb.Bipolar; set { _cb.Bipolar = Math.Clamp(value, 0f, 1f); UpdateConstants(); } }
@@ -140,11 +134,7 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
             public float Threshold;
             public float RimThickness;
             public float RimBrightness;
-            public float Window;
             public float Bipolar;
-            public float Pad0;
-            public float Pad1;
-            public float Pad2;
             public float ColorR;
             public float ColorG;
             public float ColorB;
