@@ -1,8 +1,10 @@
+using YukkuriMovieMaker.Plugin;
 using YukkuriMovieMaker.Plugin.Shape;
 using YukkuriMovieMaker.Project;
 
 namespace MetaballSpectrum;
 
+[PluginDetails(AuthorName = "routersys")]
 internal class MetaballSpectrumPlugin : IAudioSpectrumPlugin
 {
     public string Name => Texts.MetaballSpectrum;
