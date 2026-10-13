@@ -9,6 +9,7 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
 {
     public const int MaxValues = 256;
     public const int ValueByteSize = MaxValues * sizeof(float);
+    public const int MaxWindow = 1 << 20;
 
     private enum PropertyIndex
     {
@@ -74,7 +75,7 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
         public float RimBrightness { get => _cb.RimBrightness; set { _cb.RimBrightness = Math.Clamp(value, 0f, 1f); UpdateConstants(); } }
 
         [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.Window)]
-        public float Window { get => _cb.Window; set { _cb.Window = Math.Clamp(value, 0f, 8f); UpdateConstants(); } }
+        public float Window { get => _cb.Window; set { _cb.Window = Math.Clamp(value, 0f, MaxWindow); UpdateConstants(); } }
 
         [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.Bipolar)]
         public float Bipolar { get => _cb.Bipolar; set { _cb.Bipolar = Math.Clamp(value, 0f, 1f); UpdateConstants(); } }

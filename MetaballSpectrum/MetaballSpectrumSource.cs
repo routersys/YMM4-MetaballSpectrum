@@ -89,7 +89,7 @@ internal sealed class MetaballSpectrumSource : IAudioSpectrumSource
         if (count > 0)
         {
             var columnWidth = fieldWidth / count;
-            window = Math.Clamp((int)Math.Ceiling(radius / columnWidth) + 1, 1, 8);
+            window = (int)Math.Clamp(Math.Ceiling(radius / columnWidth) + 1, 1, MetaballSpectrumCustomEffect.MaxWindow);
         }
 
         var parameters = new Parameters(

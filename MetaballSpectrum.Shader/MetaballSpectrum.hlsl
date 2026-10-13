@@ -41,13 +41,12 @@ float4 main(
     float density = 0.0;
     float2 gradient = float2(0.0, 0.0);
 
-    [loop]
-    for (int offset = -window; offset <= window; offset++)
-    {
-        int index = nearest + offset;
-        if (index < 0 || index >= count)
-            continue;
+    int first = max(nearest - window, 0);
+    int last = min(nearest + window, count - 1);
 
+    [loop]
+    for (int index = first; index <= last; index++)
+    {
         float value = SpectrumLane(values[index >> 2], index & 3);
         float reach = (bipolar > 0.5 ? value : abs(value)) * span;
         float centreX = -halfWidth + (index + 0.5) * columnWidth;
