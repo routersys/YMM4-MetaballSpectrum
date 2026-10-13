@@ -13,6 +13,14 @@ internal class MetaballSpectrumPlugin : IAudioSpectrumPlugin
 
     public IAudioSpectrumParameter CreateAudioSpectrumParameter(SharedDataStore? sharedData)
     {
-        return new MetaballSpectrumParameter(sharedData);
+        try
+        {
+            return new MetaballSpectrumParameter(sharedData);
+        }
+        catch (Exception exception)
+        {
+            MetaballSpectrumTelemetry.Report(exception);
+            throw;
+        }
     }
 }

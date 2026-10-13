@@ -56,7 +56,15 @@ public class MetaballSpectrumParameter : AudioSpectrumParameterBase
 
     public override IAudioSpectrumSource CreateShapeSource(IGraphicsDevicesAndContext devices)
     {
-        return new MetaballSpectrumSource(devices, this);
+        try
+        {
+            return new MetaballSpectrumSource(devices, this);
+        }
+        catch (Exception exception)
+        {
+            MetaballSpectrumTelemetry.Report(exception);
+            throw;
+        }
     }
 
     protected override IEnumerable<IAnimatable> GetAnimatables() =>

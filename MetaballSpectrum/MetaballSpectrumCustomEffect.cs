@@ -118,7 +118,15 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
             Span<byte> buffer = stackalloc byte[ConstantBufferByteSize];
             MemoryMarshal.Write(buffer, in _cb);
             _values.CopyTo(buffer[HeaderByteSize..]);
-            drawInformation.SetPixelShaderConstantBuffer(buffer);
+            try
+            {
+                drawInformation.SetPixelShaderConstantBuffer(buffer);
+            }
+            catch (Exception exception)
+            {
+                MetaballSpectrumTelemetry.Report(exception);
+                throw;
+            }
         }
 
         [StructLayout(LayoutKind.Sequential)]
