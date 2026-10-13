@@ -10,6 +10,7 @@
     <BuildDependency Project="MetaballSpectrum.Shader/MetaballSpectrum.Shader.vcxproj" />
   </Project>
   <Project Path="MetaballSpectrum.Tests/MetaballSpectrum.Tests.csproj" />
+  <Project Path="MetaballSpectrum.Harness/MetaballSpectrum.Harness.csproj" />
   <Project Path="MetaballSpectrum.Shader/MetaballSpectrum.Shader.vcxproj">
     <BuildType Solution="*|*" Project="Release" />
     <Platform Solution="*|*" Project="Win32" />
