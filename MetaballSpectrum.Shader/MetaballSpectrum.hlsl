@@ -65,7 +65,7 @@ float4 main(
     float slope = max(length(gradient), 0.00001);
     float signedDistance = (density - threshold) / slope;
     float body = saturate(signedDistance / antialias + 0.5);
-    float rim = LineCoverage(abs(signedDistance), rimThickness * 0.5, antialias);
+    float rim = LineCoverage(abs(signedDistance), rimThickness * 0.5, antialias) * saturate(rimThickness / antialias);
 
     float coverage = max(body, rim) * tint.a;
     float3 colour = lerp(tint.rgb, float3(1.0, 1.0, 1.0), rim * rimBrightness);
