@@ -334,6 +334,25 @@ public sealed class MetaballSpectrumSourceTests
     }
 
     [Fact]
+    public void ARadiusRaisedAfterTheFirstFrameWidensTheWindow()
+    {
+        using var devices = new GraphicsDevices();
+        using var context = devices.CreateContext();
+        var spectrum = Enumerable.Range(0, 64).Select(index => (float)(0.1 + 0.9 * Math.Abs(Math.Sin(index * 0.7)))).ToArray();
+        var parameter = Parameter(radius: 5d);
+        using var source = parameter.CreateShapeSource(context);
+        using var rebuilt = Parameter(radius: 60d).CreateShapeSource(context);
+
+        RenderFrame(context, source, 0, spectrum);
+        parameter.BlobRadius.Values[0].Value = 60d;
+        var after = RenderFrame(context, source, 0, spectrum);
+        var expected = RenderFrame(context, rebuilt, 0, spectrum);
+
+        Assert.True(after.SamePixelsAs(expected));
+        Assert.Equal(0, ReferenceOf(parameter, 0, spectrum).Mismatches(after, Tolerance));
+    }
+
+    [Fact]
     public void AChangedSpectrumReachesTheNextFrame()
     {
         using var devices = new GraphicsDevices();
