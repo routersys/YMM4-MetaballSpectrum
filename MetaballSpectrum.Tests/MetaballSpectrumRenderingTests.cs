@@ -54,23 +54,6 @@ public sealed class MetaballSpectrumRenderingTests
         return Rendering.Capture(devices, output);
     }
 
-    static (int Mismatches, int Worst) Compare(Rendering rendering, MetaballReference spec)
-    {
-        var mismatches = 0;
-        var worst = 0;
-        foreach (var (x, y) in rendering.Coordinates())
-        {
-            var actual = rendering[x, y];
-            var expected = spec.At(x, y);
-            var difference = new[] { actual.Blue - expected.Blue, actual.Green - expected.Green, actual.Red - expected.Red, actual.Alpha - expected.Alpha }.Max(Math.Abs);
-            worst = Math.Max(worst, difference);
-            if (difference > Tolerance)
-                mismatches++;
-        }
-
-        return (mismatches, worst);
-    }
-
     static float[] Ramp(int count) => Enumerable.Range(0, count).Select(index => (float)(0.15 + 0.85 * Math.Abs(Math.Sin(index * 0.7)))).ToArray();
 
     static float[] Wave(int count) => Enumerable.Range(0, count).Select(index => (float)Math.Sin(index * 0.9) * (1f - index / (float)count)).ToArray();
@@ -129,7 +112,7 @@ public sealed class MetaballSpectrumRenderingTests
 
         var rendering = Render(context, spec);
 
-        Assert.Equal(0, Compare(rendering, spec).Mismatches);
+        Assert.Equal(0, spec.Mismatches(rendering, Tolerance));
     }
 
     [Fact]
@@ -141,7 +124,7 @@ public sealed class MetaballSpectrumRenderingTests
 
         var rendering = Render(context, spec, window: 4);
 
-        Assert.Equal(0, Compare(rendering, spec).Mismatches);
+        Assert.Equal(0, spec.Mismatches(rendering, Tolerance));
     }
 
     [Fact]
@@ -153,7 +136,7 @@ public sealed class MetaballSpectrumRenderingTests
 
         var rendering = Render(context, spec, window: 4);
 
-        Assert.Equal(0, Compare(rendering, spec).Mismatches);
+        Assert.Equal(0, spec.Mismatches(rendering, Tolerance));
     }
 
     [Theory]
@@ -168,7 +151,7 @@ public sealed class MetaballSpectrumRenderingTests
 
         var rendering = Render(context, spec, window: 4);
 
-        Assert.Equal(0, Compare(rendering, spec).Mismatches);
+        Assert.Equal(0, spec.Mismatches(rendering, Tolerance));
     }
 
     [Fact]
@@ -181,7 +164,7 @@ public sealed class MetaballSpectrumRenderingTests
         var rendering = Render(context, spec);
 
         Assert.Equal(new Bgra(122, 61, 31, 153), rendering[0, 0]);
-        Assert.Equal(0, Compare(rendering, spec).Mismatches);
+        Assert.Equal(0, spec.Mismatches(rendering, Tolerance));
     }
 
     [Fact]
@@ -221,7 +204,7 @@ public sealed class MetaballSpectrumRenderingTests
         var rendering = Render(context, spec, window: needed);
 
         Assert.True(needed > 8);
-        Assert.Equal(0, Compare(rendering, spec).Mismatches);
+        Assert.Equal(0, spec.Mismatches(rendering, Tolerance));
     }
 
     [Fact]

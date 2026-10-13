@@ -35,6 +35,9 @@ internal sealed record MetaballReference(
             var centreX = -halfWidth + (index + 0.5) * columnWidth;
             var slide = Math.Abs(reach) > 0.0001 ? Math.Clamp((localY - baseline) / -reach, 0d, 1d) : 0d;
             var deltaX = localX - centreX;
+            if (Math.Abs(deltaX) >= Radius)
+                continue;
+
             var deltaY = localY - (baseline - slide * reach);
             var ratio = Math.Sqrt(deltaX * deltaX + deltaY * deltaY) / Radius;
             if (ratio >= 1d)
@@ -60,6 +63,26 @@ internal sealed record MetaballReference(
             Quantize((Tint.G + (1d - Tint.G) * mix) * coverage),
             Quantize((Tint.R + (1d - Tint.R) * mix) * coverage),
             Quantize(coverage));
+    }
+
+    public int Mismatches(Rendering rendering, int tolerance)
+    {
+        var mismatches = 0;
+        for (var y = rendering.Top; y < rendering.Bottom; y++)
+        {
+            for (var x = rendering.Left; x < rendering.Right; x++)
+            {
+                var actual = rendering[x, y];
+                var expected = At(x, y);
+                var difference = Math.Max(
+                    Math.Max(Math.Abs(actual.Blue - expected.Blue), Math.Abs(actual.Green - expected.Green)),
+                    Math.Max(Math.Abs(actual.Red - expected.Red), Math.Abs(actual.Alpha - expected.Alpha)));
+                if (difference > tolerance)
+                    mismatches++;
+            }
+        }
+
+        return mismatches;
     }
 
     static double LineCoverage(double distance, double halfWidth)

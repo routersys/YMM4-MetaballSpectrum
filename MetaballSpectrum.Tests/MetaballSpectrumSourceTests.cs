@@ -53,14 +53,6 @@ public sealed class MetaballSpectrumSourceTests
             (color.R / 255d, color.G / 255d, color.B / 255d, color.A / 255d));
     }
 
-    static int Mismatches(Rendering rendering, MetaballReference reference)
-        => rendering.Coordinates().Count(point =>
-        {
-            var actual = rendering[point.X, point.Y];
-            var expected = reference.At(point.X, point.Y);
-            return new[] { actual.Blue - expected.Blue, actual.Green - expected.Green, actual.Red - expected.Red, actual.Alpha - expected.Alpha }.Max(Math.Abs) > Tolerance;
-        });
-
     static bool Transparent(Rendering rendering) => rendering.Coordinates().All(point => rendering[point.X, point.Y] == Bgra.Transparent);
 
     static Animation Linear(double from, double to)
@@ -171,7 +163,7 @@ public sealed class MetaballSpectrumSourceTests
 
         var rendering = RenderFrame(context, source, 5, spectrum);
 
-        Assert.Equal(0, Mismatches(rendering, ReferenceOf(parameter, 5, spectrum)));
+        Assert.Equal(0, ReferenceOf(parameter, 5, spectrum).Mismatches(rendering, Tolerance));
     }
 
     [Theory]
@@ -190,7 +182,7 @@ public sealed class MetaballSpectrumSourceTests
 
         var rendering = RenderFrame(context, source, 0, spectrum);
 
-        Assert.Equal(0, Mismatches(rendering, ReferenceOf(parameter, 0, spectrum)));
+        Assert.Equal(0, ReferenceOf(parameter, 0, spectrum).Mismatches(rendering, Tolerance));
     }
 
     [Fact]
@@ -371,7 +363,7 @@ public sealed class MetaballSpectrumSourceTests
         Assert.True(end.Height > start.Height);
         Assert.Equal(Bgra.Transparent, start[0, -25]);
         Assert.Equal(Bgra.Opaque(255, 255, 255), end[0, -45]);
-        Assert.Equal(0, Mismatches(end, ReferenceOf(parameter, Length - 1, [1f])));
+        Assert.Equal(0, ReferenceOf(parameter, Length - 1, [1f]).Mismatches(end, Tolerance));
     }
 
     [Fact]
