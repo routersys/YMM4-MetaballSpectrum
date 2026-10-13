@@ -8,6 +8,10 @@ cbuffer Constants : register(b0)
     float4 values[64] : packoffset(c3);
 };
 
+static const float MinimumReach = 0.0001;
+static const float MinimumSlope = 0.00001;
+static const float MinimumAntialias = 0.5;
+
 float4 main(
     float4 position : SV_POSITION,
     float4 scenePosition : SCENE_POSITION,
@@ -24,44 +28,44 @@ float4 main(
     float threshold = style.x;
     float rimThickness = style.y;
     float rimBrightness = style.z;
-    float bipolar = style.w;
+    bool bipolar = style.w > 0.5;
 
     float halfWidth = width * 0.5;
     float halfHeight = height * 0.5;
     float columnWidth = width / count;
-    float baseline = bipolar > 0.5 ? 0.0 : halfHeight;
-    float span = bipolar > 0.5 ? halfHeight : height;
+    float baseline = bipolar ? 0.0 : halfHeight;
+    float span = bipolar ? halfHeight : height;
 
     float2 local = scenePosition.xy;
-    float antialias = max(max(fwidth(local.x), fwidth(local.y)), 0.5);
-
-    float density = 0.0;
-    float2 gradient = float2(0.0, 0.0);
+    float antialias = max(max(fwidth(local.x), fwidth(local.y)), MinimumAntialias);
 
     float firstReached = (local.x - radius + halfWidth) / columnWidth - 0.5;
     float lastReached = (local.x + radius + halfWidth) / columnWidth - 0.5;
     int first = (int)clamp(ceil(firstReached), 0.0, count - 1.0);
     int last = (int)clamp(floor(lastReached), -1.0, count - 1.0);
 
+    float density = 0.0;
+    float2 gradient = float2(0.0, 0.0);
+
     [loop]
     for (int index = first; index <= last; index++)
     {
         float value = SpectrumLane(values[index >> 2], index & 3);
-        float reach = (bipolar > 0.5 ? value : abs(value)) * span;
+        float reach = (bipolar ? value : abs(value)) * span;
         float centreX = -halfWidth + (index + 0.5) * columnWidth;
 
-        float slide = abs(reach) > 0.0001 ? saturate((local.y - baseline) / -reach) : 0.0;
-        float2 delta = local - float2(centreX, baseline - slide * reach);
+        float along = abs(reach) > MinimumReach ? saturate((local.y - baseline) / -reach) : 0.0;
+        float2 delta = local - float2(centreX, baseline - along * reach);
         float ratio = length(delta) / radius;
         if (ratio >= 1.0)
             continue;
 
-        float shell = 1.0 - ratio * ratio;
-        density += shell * shell * shell;
-        gradient += delta * (-6.0 * shell * shell / (radius * radius));
+        float falloff = 1.0 - ratio * ratio;
+        density += falloff * falloff * falloff;
+        gradient += delta * (-6.0 * falloff * falloff / (radius * radius));
     }
 
-    float slope = max(length(gradient), 0.00001);
+    float slope = max(length(gradient), MinimumSlope);
     float signedDistance = (density - threshold) / slope;
     float body = saturate(signedDistance / antialias + 0.5);
     float rim = LineCoverage(abs(signedDistance), rimThickness * 0.5, antialias) * saturate(rimThickness / antialias);
