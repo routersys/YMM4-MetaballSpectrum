@@ -24,16 +24,8 @@ public sealed class MetaballSpectrumRenderingTests
         return MemoryMarshal.AsBytes(block.AsSpan()).ToArray();
     }
 
-    static Rendering Render(IGraphicsDevicesAndContext devices, MetaballReference spec, int window = 3, int? count = null)
+    static void Configure(MetaballSpectrumCustomEffect effect, MetaballReference spec, int window, int? count = null)
     {
-        var context = devices.DeviceContext;
-        var halfWidth = (float)(spec.Width * 0.5 + spec.Radius + Margin);
-        var halfHeight = (float)(spec.Height * 0.5 + spec.Radius + Margin);
-        using var flood = new Flood(context) { Color = Vector4.Zero };
-        using var effect = new MetaballSpectrumCustomEffect(devices);
-        using var clip = new Crop(context) { Rectangle = new Vector4(-halfWidth, -halfHeight, halfWidth, halfHeight) };
-        using var floodOutput = flood.Output;
-        effect.SetInput(0, floodOutput, true);
         effect.FieldWidth = (float)spec.Width;
         effect.FieldHeight = (float)spec.Height;
         effect.ValueCount = count ?? spec.Values.Length;
@@ -48,6 +40,27 @@ public sealed class MetaballSpectrumRenderingTests
         effect.ColorB = (float)spec.Tint.B;
         effect.ColorA = (float)spec.Tint.A;
         effect.Values = Packed(spec.Values);
+    }
+
+    static Rendering Render(IGraphicsDevicesAndContext devices, MetaballReference spec, int window = 3, int? count = null)
+    {
+        var context = devices.DeviceContext;
+        var halfWidth = (float)(spec.Width * 0.5 + spec.Radius + Margin);
+        var halfHeight = (float)(spec.Height * 0.5 + spec.Radius + Margin);
+        using var flood = new Flood(context) { Color = Vector4.Zero };
+        using var effect = new MetaballSpectrumCustomEffect(devices);
+        using var clip = new Crop(context) { Rectangle = new Vector4(-halfWidth, -halfHeight, halfWidth, halfHeight) };
+        using var floodOutput = flood.Output;
+        effect.SetInput(0, floodOutput, true);
+        Configure(effect, spec, window, count);
+        using var effectOutput = effect.Output;
+        clip.SetInput(0, effectOutput, true);
+        using var output = clip.Output;
+        return Rendering.Capture(devices, output);
+    }
+
+    static Rendering Capture(IGraphicsDevicesAndContext devices, MetaballSpectrumCustomEffect effect, Crop clip)
+    {
         using var effectOutput = effect.Output;
         clip.SetInput(0, effectOutput, true);
         using var output = clip.Output;
@@ -57,6 +70,74 @@ public sealed class MetaballSpectrumRenderingTests
     static float[] Ramp(int count) => Enumerable.Range(0, count).Select(index => (float)(0.15 + 0.85 * Math.Abs(Math.Sin(index * 0.7)))).ToArray();
 
     static float[] Wave(int count) => Enumerable.Range(0, count).Select(index => (float)Math.Sin(index * 0.9) * (1f - index / (float)count)).ToArray();
+
+    static readonly MetaballReference Base = new(60d, 60d, 20d, 0.45, 4d, 0.6, false, [1f, 0.5f], (0.125, 0.4, 1d, 1d));
+
+    static readonly Action<MetaballSpectrumCustomEffect>[] Changes =
+    [
+        effect => effect.FieldWidth = 140f,
+        effect => effect.FieldHeight = 100f,
+        effect => effect.ValueCount = 1f,
+        effect => effect.BlobRadius = 10f,
+        effect => effect.Threshold = 0.8f,
+        effect => effect.RimThickness = 12f,
+        effect => effect.RimBrightness = 0f,
+        effect => effect.Window = 0f,
+        effect => effect.Bipolar = 1f,
+        effect => effect.ColorR = 0.8f,
+        effect => effect.ColorG = 0.9f,
+        effect => effect.ColorB = 0.2f,
+        effect => effect.ColorA = 0.5f,
+        effect => effect.Values = Packed([0.2f, 1f]),
+    ];
+
+    static readonly string[] ChangedSettings = [
+        "FieldWidth",
+        "FieldHeight",
+        "ValueCount",
+        "BlobRadius",
+        "Threshold",
+        "RimThickness",
+        "RimBrightness",
+        "Window",
+        "Bipolar",
+        "ColorR",
+        "ColorG",
+        "ColorB",
+        "ColorA",
+        "Values",
+    ];
+
+    public static readonly TheoryData<int> ChangeIndexes = new(Enumerable.Range(0, Changes.Length));
+
+    [Theory]
+    [MemberData(nameof(ChangeIndexes))]
+    public void EverySettingChangedAfterTheFirstDrawReachesTheShader(int index)
+    {
+        var change = Changes[index];
+        var setting = ChangedSettings[index];
+        using var devices = new GraphicsDevices();
+        using var context = devices.CreateContext();
+        using var flood = new Flood(context.DeviceContext) { Color = Vector4.Zero };
+        using var floodOutput = flood.Output;
+        using var live = new MetaballSpectrumCustomEffect(context);
+        using var liveClip = new Crop(context.DeviceContext) { Rectangle = new Vector4(-120f, -80f, 120f, 80f) };
+        live.SetInput(0, floodOutput, true);
+        Configure(live, Base, 3);
+        using var fresh = new MetaballSpectrumCustomEffect(context);
+        using var freshClip = new Crop(context.DeviceContext) { Rectangle = new Vector4(-120f, -80f, 120f, 80f) };
+        fresh.SetInput(0, floodOutput, true);
+        Configure(fresh, Base, 3);
+        change(fresh);
+
+        var before = Capture(context, live, liveClip);
+        change(live);
+        var after = Capture(context, live, liveClip);
+        var expected = Capture(context, fresh, freshClip);
+
+        Assert.False(before.SamePixelsAs(after), setting);
+        Assert.True(after.SamePixelsAs(expected), setting);
+    }
 
     [Fact]
     public void WithoutValuesNothingIsDrawn()
