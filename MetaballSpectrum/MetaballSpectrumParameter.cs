@@ -9,8 +9,13 @@ using YukkuriMovieMaker.Project;
 
 namespace MetaballSpectrum;
 
-public class MetaballSpectrumParameter(SharedDataStore? sharedData = null) : AudioSpectrumParameterBase(sharedData)
+public class MetaballSpectrumParameter : AudioSpectrumParameterBase
 {
+    public MetaballSpectrumParameter(SharedDataStore? sharedData = null) : base(sharedData)
+    {
+        MetaballSpectrumTelemetry.EnsureStartedOnce();
+    }
+
     [Display(Name = nameof(Texts.FieldWidth), Description = nameof(Texts.FieldWidthDescription), Order = 10, ResourceType = typeof(Texts))]
     [AnimationSlider("F1", "px", 0, 1920)]
     public Animation FieldWidth { get; } = new Animation(600, 0.01, YMM4Constants.VeryLargeValue);
