@@ -1,0 +1,19 @@
+{
+  "stryker-config": {
+    "project": "MetaballSpectrum.csproj",
+    "test-runner": "mtp",
+    "coverage-analysis": "off",
+    "mutate": [
+      "**/*.cs",
+      "!**/YMM4-GitHubUpdateNotifier/**",
+      "!**/YMM4-Telemetry/**",
+      "!**/MetaballSpectrumTelemetry.cs",
+      "!**/MetaballSpectrumUpdateNotifier.cs"
+    ],
+    "reporters": [
+      "progress",
+      "cleartext",
+      "html"
+    ]
+  }
+}
