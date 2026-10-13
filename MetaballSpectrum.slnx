@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="MetaballSpectrum/MetaballSpectrum.csproj">
+    <BuildDependency Project="MetaballSpectrum.Shader/MetaballSpectrum.Shader.vcxproj" />
+  </Project>
+  <Project Path="MetaballSpectrum.Shader/MetaballSpectrum.Shader.vcxproj">
+    <BuildType Solution="*|*" Project="Release" />
+    <Platform Solution="*|*" Project="Win32" />
+  </Project>
+</Solution>
