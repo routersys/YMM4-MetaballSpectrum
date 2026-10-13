@@ -44,6 +44,9 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
     [CustomEffect(1)]
     private sealed class EffectImpl : D2D1CustomShaderEffectImplBase<EffectImpl>
     {
+        private const float MinimumLength = 0.001f;
+        private const float MinimumThreshold = 0.001f;
+        private const float MaximumThreshold = 0.999f;
         private const int HeaderByteSize = 48;
         private const int ConstantBufferByteSize = HeaderByteSize + ValueByteSize;
 
@@ -51,19 +54,19 @@ internal sealed class MetaballSpectrumCustomEffect(IGraphicsDevicesAndContext de
         private readonly byte[] _values = new byte[ValueByteSize];
 
         [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.FieldWidth)]
-        public float FieldWidth { get => _cb.FieldWidth; set { _cb.FieldWidth = Math.Max(value, 0.001f); UpdateConstants(); } }
+        public float FieldWidth { get => _cb.FieldWidth; set { _cb.FieldWidth = Math.Max(value, MinimumLength); UpdateConstants(); } }
 
         [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.FieldHeight)]
-        public float FieldHeight { get => _cb.FieldHeight; set { _cb.FieldHeight = Math.Max(value, 0.001f); UpdateConstants(); } }
+        public float FieldHeight { get => _cb.FieldHeight; set { _cb.FieldHeight = Math.Max(value, MinimumLength); UpdateConstants(); } }
 
         [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.ValueCount)]
         public float ValueCount { get => _cb.ValueCount; set { _cb.ValueCount = Math.Clamp(value, 0f, MaxValues); UpdateConstants(); } }
 
         [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.BlobRadius)]
-        public float BlobRadius { get => _cb.BlobRadius; set { _cb.BlobRadius = Math.Max(value, 0.001f); UpdateConstants(); } }
+        public float BlobRadius { get => _cb.BlobRadius; set { _cb.BlobRadius = Math.Max(value, MinimumLength); UpdateConstants(); } }
 
         [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.Threshold)]
-        public float Threshold { get => _cb.Threshold; set { _cb.Threshold = Math.Clamp(value, 0.001f, 0.999f); UpdateConstants(); } }
+        public float Threshold { get => _cb.Threshold; set { _cb.Threshold = Math.Clamp(value, MinimumThreshold, MaximumThreshold); UpdateConstants(); } }
 
         [CustomEffectProperty(PropertyType.Float, (int)PropertyIndex.RimThickness)]
         public float RimThickness { get => _cb.RimThickness; set { _cb.RimThickness = Math.Max(value, 0f); UpdateConstants(); } }
