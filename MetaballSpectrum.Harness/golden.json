@@ -1,0 +1,149 @@
+{
+  "adapter": "Intel(R) Iris(R) Xe Graphics",
+  "driver": "32.0.101.7085",
+  "input": "synthetic 32 bands 300 frames 7CA0175A952707A6",
+  "canvas": "1280x720",
+  "cases": [
+    {
+      "name": "default",
+      "frames": [
+        0
+      ],
+      "hash": "19DDB7CEA35FE5A4C49E10E3856497C841105DCCB210D0F2D93D098C0344642C"
+    },
+    {
+      "name": "default-frame-4",
+      "frames": [
+        4
+      ],
+      "hash": "C193F55107D02AC4D1515C4C0935FD24E9825EFE41680840E266983AAA5AD1AC"
+    },
+    {
+      "name": "default-frames-0-8",
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "hash": "0A4F4D40723EB1E6954B7D34ABFA443C774B57C8DA3E5053DB4029D5079EF09D"
+    },
+    {
+      "name": "width-200",
+      "frames": [
+        0
+      ],
+      "hash": "3C9FD5C9776B08C396C93CF42304B4C1EAAFF94EF81BF1E331A63D4231428634"
+    },
+    {
+      "name": "width-1200",
+      "frames": [
+        0
+      ],
+      "hash": "12E066F70458F1E3E7C59828737B1961784E77C4528C9C762B0D87D482DF2ACB"
+    },
+    {
+      "name": "height-100",
+      "frames": [
+        0
+      ],
+      "hash": "FFFBCE02816D8DFD036C41BB9AB2CA88929333E79DDCDF0E94C8470AD9119A01"
+    },
+    {
+      "name": "height-600",
+      "frames": [
+        0
+      ],
+      "hash": "72339199959E2B345E0F32294C4F9366CA746B28E76E2868A2C94F90C49C2DA9"
+    },
+    {
+      "name": "radius-8",
+      "frames": [
+        0
+      ],
+      "hash": "813937F5B0C827B33A4E47527C1F478B0B6625FB5E1AF0A1F19E3BAF76C4DFB5"
+    },
+    {
+      "name": "radius-120",
+      "frames": [
+        0
+      ],
+      "hash": "C19F16565913DB89CB169A51A4BC4CB3BC1DA5ABD21BBBF9E5F624C8D678E2A7"
+    },
+    {
+      "name": "width-200-radius-120",
+      "frames": [
+        0
+      ],
+      "hash": "36B39B88B1B756C21E3236BC5D9B2AA73A0284C32C3F475B401EE4D6A17E59C4"
+    },
+    {
+      "name": "threshold-10",
+      "frames": [
+        0
+      ],
+      "hash": "DA21157DAA9196E0AB6758124CC1EE3A4C5F7BA0DAD643B0947D65CC73AB7B9A"
+    },
+    {
+      "name": "threshold-90",
+      "frames": [
+        0
+      ],
+      "hash": "B89073780E5BEE8082C89119C30F7CE360B67D7684CC894F4436DF125972E059"
+    },
+    {
+      "name": "rim-thickness-0",
+      "frames": [
+        0
+      ],
+      "hash": "38747E7BB536E7004CC49275FF0FB7EEB355FB7580749208A091D628D8D1CED7"
+    },
+    {
+      "name": "rim-thickness-30",
+      "frames": [
+        0
+      ],
+      "hash": "44760BC489C52439B3074E000010955ED57277842B21A25EBD15FCD6106983A9"
+    },
+    {
+      "name": "rim-brightness-0",
+      "frames": [
+        0
+      ],
+      "hash": "EC11329034CAE51C1C664C893DA71A13CED1C1696E976A4986BA17CC81B196BE"
+    },
+    {
+      "name": "rim-brightness-100",
+      "frames": [
+        0
+      ],
+      "hash": "4484C620BEC553FA56C5E578BDECC1DDED6D4FD429BDD83B3BBE9F3510B14C7F"
+    },
+    {
+      "name": "bipolar",
+      "frames": [
+        0
+      ],
+      "hash": "5B66C9EE435E449895C73083F624E770C2C7013AB16B3AF2DBEDFA819303093D"
+    },
+    {
+      "name": "bipolar-frame-4",
+      "frames": [
+        4
+      ],
+      "hash": "22C9B695E822409BEF6B4D92EE83244CB83F7F8261D7E496B0B68E5D4AD56C66"
+    },
+    {
+      "name": "color-half-red",
+      "frames": [
+        0
+      ],
+      "hash": "00F9729052524E60C3CE9197760C6D895CB011E2A77CAC7CAB3CF25AFF7E52E0"
+    }
+  ]
+}
