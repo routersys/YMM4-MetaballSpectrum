@@ -47,7 +47,7 @@ public class MetaballSpectrumParameter : AudioSpectrumParameterBase
     [Display(Name = nameof(Texts.IsBipolar), Description = nameof(Texts.IsBipolarDescription), Order = 16, ResourceType = typeof(Texts))]
     [ToggleSlider]
     public bool IsBipolar { get => isBipolar; set => Set(ref isBipolar, value); }
-    private bool isBipolar = false;
+    private bool isBipolar;
 
     [Display(Name = nameof(Texts.MetaballColor), Description = nameof(Texts.MetaballColorDescription), Order = 17, ResourceType = typeof(Texts))]
     [ColorPicker]
@@ -74,48 +74,28 @@ public class MetaballSpectrumParameter : AudioSpectrumParameterBase
     protected override IEnumerable<IAnimatable> GetAnimatables() =>
         [FieldWidth, FieldHeight, BlobRadius, Threshold, RimThickness, RimBrightness];
 
-    protected override void LoadSharedData(SharedDataStore sharedData)
+    protected override void LoadSharedData(SharedDataStore store)
     {
-        var data = sharedData.Load<MetaballSpectrumParameterData>();
-        if (data is null)
-            return;
-
-        FieldWidth.CopyFrom(data.FieldWidth);
-        FieldHeight.CopyFrom(data.FieldHeight);
-        BlobRadius.CopyFrom(data.BlobRadius);
-        Threshold.CopyFrom(data.Threshold);
-        RimThickness.CopyFrom(data.RimThickness);
-        RimBrightness.CopyFrom(data.RimBrightness);
-        IsBipolar = data.IsBipolar;
-        MetaballColor = data.MetaballColor;
+        if (store.Load<MetaballSpectrumParameter>() is { } saved)
+            CopyFrom(saved);
     }
 
     protected override void SaveSharedData(SharedDataStore store)
     {
-        store.Save(new MetaballSpectrumParameterData(this));
+        var saved = new MetaballSpectrumParameter();
+        saved.CopyFrom(this);
+        store.Save(saved);
     }
-}
 
-public class MetaballSpectrumParameterData
-{
-    public Animation FieldWidth { get; } = new Animation(600, 0.01, YMM4Constants.VeryLargeValue);
-    public Animation FieldHeight { get; } = new Animation(300, 0.01, YMM4Constants.VeryLargeValue);
-    public Animation BlobRadius { get; } = new Animation(36, 0.01, YMM4Constants.VeryLargeValue);
-    public Animation Threshold { get; } = new Animation(45, 0.1, 99.9);
-    public Animation RimThickness { get; } = new Animation(4, 0, YMM4Constants.VeryLargeValue);
-    public Animation RimBrightness { get; } = new Animation(60, 0, 100);
-    public bool IsBipolar { get; set; }
-    public Color MetaballColor { get; set; }
-
-    public MetaballSpectrumParameterData(MetaballSpectrumParameter target)
+    private void CopyFrom(MetaballSpectrumParameter source)
     {
-        FieldWidth.CopyFrom(target.FieldWidth);
-        FieldHeight.CopyFrom(target.FieldHeight);
-        BlobRadius.CopyFrom(target.BlobRadius);
-        Threshold.CopyFrom(target.Threshold);
-        RimThickness.CopyFrom(target.RimThickness);
-        RimBrightness.CopyFrom(target.RimBrightness);
-        IsBipolar = target.IsBipolar;
-        MetaballColor = target.MetaballColor;
+        FieldWidth.CopyFrom(source.FieldWidth);
+        FieldHeight.CopyFrom(source.FieldHeight);
+        BlobRadius.CopyFrom(source.BlobRadius);
+        Threshold.CopyFrom(source.Threshold);
+        RimThickness.CopyFrom(source.RimThickness);
+        RimBrightness.CopyFrom(source.RimBrightness);
+        IsBipolar = source.IsBipolar;
+        MetaballColor = source.MetaballColor;
     }
 }
