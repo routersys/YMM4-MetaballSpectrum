@@ -75,14 +75,32 @@ internal sealed class MetaballSpectrumSource : IAudioSpectrumSource
         if (_effect is null)
             return;
 
+        var count = SpectrumResampler.Resample(spectrum, MemoryMarshal.Cast<byte, float>(_valueBytes.AsSpan()));
+        var parameters = ReadParameters(desc);
+
+        ApplyChanges(_effect, parameters);
+        _effect.ValueCount = count;
+        _effect.Values = _valueBytes;
+
+        var crop = parameters.Crop;
+        if (_isFirst || _cropRect != crop)
+        {
+            _crop.Rectangle = crop;
+            _cropRect = crop;
+        }
+
+        _parameters = parameters;
+        _isFirst = false;
+    }
+
+    private Parameters ReadParameters(TimelineItemSourceDescription desc)
+    {
         var frame = desc.ItemPosition.Frame;
         var length = desc.ItemDuration.Frame;
         var fps = desc.FPS;
         var color = _parameter.MetaballColor;
 
-        var count = SpectrumResampler.Resample(spectrum, MemoryMarshal.Cast<byte, float>(_valueBytes.AsSpan()));
-
-        var parameters = new Parameters(
+        return new Parameters(
             (float)_parameter.FieldWidth.GetValue(frame, length, fps),
             (float)_parameter.FieldHeight.GetValue(frame, length, fps),
             (float)_parameter.BlobRadius.GetValue(frame, length, fps),
@@ -94,45 +112,32 @@ internal sealed class MetaballSpectrumSource : IAudioSpectrumSource
             color.G / 255f,
             color.B / 255f,
             color.A / 255f);
+    }
 
+    private void ApplyChanges(MetaballSpectrumCustomEffect effect, in Parameters parameters)
+    {
         if (_isFirst || _parameters.FieldWidth != parameters.FieldWidth)
-            _effect.FieldWidth = parameters.FieldWidth;
+            effect.FieldWidth = parameters.FieldWidth;
         if (_isFirst || _parameters.FieldHeight != parameters.FieldHeight)
-            _effect.FieldHeight = parameters.FieldHeight;
+            effect.FieldHeight = parameters.FieldHeight;
         if (_isFirst || _parameters.BlobRadius != parameters.BlobRadius)
-            _effect.BlobRadius = parameters.BlobRadius;
+            effect.BlobRadius = parameters.BlobRadius;
         if (_isFirst || _parameters.Threshold != parameters.Threshold)
-            _effect.Threshold = parameters.Threshold;
+            effect.Threshold = parameters.Threshold;
         if (_isFirst || _parameters.RimThickness != parameters.RimThickness)
-            _effect.RimThickness = parameters.RimThickness;
+            effect.RimThickness = parameters.RimThickness;
         if (_isFirst || _parameters.RimBrightness != parameters.RimBrightness)
-            _effect.RimBrightness = parameters.RimBrightness;
+            effect.RimBrightness = parameters.RimBrightness;
         if (_isFirst || _parameters.Bipolar != parameters.Bipolar)
-            _effect.Bipolar = parameters.Bipolar;
+            effect.Bipolar = parameters.Bipolar;
         if (_isFirst || _parameters.ColorR != parameters.ColorR)
-            _effect.ColorR = parameters.ColorR;
+            effect.ColorR = parameters.ColorR;
         if (_isFirst || _parameters.ColorG != parameters.ColorG)
-            _effect.ColorG = parameters.ColorG;
+            effect.ColorG = parameters.ColorG;
         if (_isFirst || _parameters.ColorB != parameters.ColorB)
-            _effect.ColorB = parameters.ColorB;
+            effect.ColorB = parameters.ColorB;
         if (_isFirst || _parameters.ColorA != parameters.ColorA)
-            _effect.ColorA = parameters.ColorA;
-
-        _effect.ValueCount = count;
-        _effect.Values = _valueBytes;
-
-        var margin = parameters.BlobRadius + parameters.RimThickness * 0.5f + 2f;
-        var halfWidth = parameters.FieldWidth * 0.5f + margin;
-        var halfHeight = parameters.FieldHeight * 0.5f + margin;
-        var cropRect = new Vector4(-halfWidth, -halfHeight, halfWidth, halfHeight);
-        if (_isFirst || _cropRect != cropRect)
-        {
-            _crop.Rectangle = cropRect;
-            _cropRect = cropRect;
-        }
-
-        _parameters = parameters;
-        _isFirst = false;
+            effect.ColorA = parameters.ColorA;
     }
 
     public void Dispose()
@@ -166,5 +171,19 @@ internal sealed class MetaballSpectrumSource : IAudioSpectrumSource
         float ColorR,
         float ColorG,
         float ColorB,
-        float ColorA);
+        float ColorA)
+    {
+        private const float AntialiasMargin = 2f;
+
+        public Vector4 Crop
+        {
+            get
+            {
+                var margin = BlobRadius + RimThickness * 0.5f + AntialiasMargin;
+                var halfWidth = FieldWidth * 0.5f + margin;
+                var halfHeight = FieldHeight * 0.5f + margin;
+                return new Vector4(-halfWidth, -halfHeight, halfWidth, halfHeight);
+            }
+        }
+    }
 }
